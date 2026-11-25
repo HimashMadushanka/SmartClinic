@@ -2,7 +2,6 @@
 
 A clinic appointment booking workflow built with **n8n, MySQL, Gmail, Telegram, and Docker**. SmartClinic accepts appointment requests, checks slot availability, stores bookings, and sends confirmation or unavailable-slot notifications.
 
-> This repository contains an n8n workflow export and a workflow overview image. It does not include a database schema, Docker Compose file, or live credentials.
 
 ## Features
 
@@ -23,18 +22,6 @@ The workflow does **not** collect or store phone numbers.
 4. If the slot is available, the workflow saves the patient record, creates or finds the slot, reserves it, and creates a booking reference.
 5. Gmail sends the confirmation. Telegram sends an admin alert when configured.
 
-## Repository contents
-
-```text
-SmartClinic/
-├── README.md
-├── workflows/
-│   └── smartclinic_appointment_booking.json
-└── screenshots/
-    └── workflow_overview.png
-```
-
-The workflow expects a MySQL database with tables for patients, appointment slots, and appointments. A schema file is not included in this repository, so prepare a compatible database before running the workflow.
 
 ## Requirements
 
@@ -70,9 +57,7 @@ Create a database and the tables expected by the workflow before importing it. C
 4. Review the doctor options and ensure their IDs match the doctor IDs used by your appointment-slot data.
 5. Configure the form and activate the workflow when it is ready.
 
-### 4. Configure Telegram (optional)
 
-Add Telegram API credentials in n8n and replace `YOUR_ADMIN_CHAT_ID` in the Telegram node with the intended admin chat ID. Keep the bot token in n8n credentials; never commit it to GitHub. The alert includes appointment details, so use a private, authorized admin chat.
 
 ## Privacy and security
 
@@ -97,10 +82,3 @@ Add Telegram API credentials in n8n and replace `YOUR_ADMIN_CHAT_ID` in the Tele
 - Send timely appointment updates.
 - Provide a foundation for future cancellation, rescheduling, reminders, and reporting features.
 
-## Maintainer
-
-**SmartClinic Project**
-
----
-
-*SmartClinic — making clinic appointment management simpler through automation.*
