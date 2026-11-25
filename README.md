@@ -2,6 +2,22 @@
 
 A clinic appointment booking workflow built with **n8n, MySQL, Gmail, Telegram, and Docker**. SmartClinic accepts appointment requests, checks slot availability, stores bookings, and sends confirmation or unavailable-slot notifications.
 
+## Workflow overview
+
+![SmartClinic appointment booking workflow](screenshots/workflow_overview.png)
+
+## Project structure
+
+```text
+SmartClinic/
+├── README.md
+├── workflows/
+│   └── smartclinic_appointment_booking.json
+└── screenshots/
+    └── workflow_overview.png
+```
+
+The workflow expects a compatible MySQL schema. A schema file is not included in this repository.
 
 ## Features
 
