@@ -1,0 +1,529 @@
+{
+  "name": "01 - Patient Appointment Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "SmartClinic - Patient Appointment Form",
+        "formDescription": "Please complete this form to request a clinic appointment.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Patient Name"
+            },
+            {
+              "fieldLabel": "Email Address",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Doctor",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Dr. Silva – ID 1"
+                  },
+                  {
+                    "option": "Dr. Perera – ID 2"
+                  },
+                  {
+                    "option": "Dr. Fernando – ID 3"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Appointment Date",
+              "fieldType": "date"
+            },
+            {
+              "fieldLabel": "Appointment Time",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "09:00 AM"
+                  },
+                  {
+                    "option": "10:00 AM"
+                  },
+                  {
+                    "option": "11:00 AM"
+                  },
+                  {
+                    "option": "12:00 PM"
+                  },
+                  {
+                    "option": "02:00 PM"
+                  },
+                  {
+                    "option": "03:00 PM"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -816,
+        -160
+      ],
+      "id": "_",
+      "name": "On form submission",
+      "webhookId": "_"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "38bef29a-4c5f-4ea0-accd-4e8555fbac65",
+              "name": "Name",
+              "value": "full_name",
+              "type": "string"
+            },
+            {
+              "id": "f0d78fa5-93e2-4a26-a979-9efb732db920",
+              "name": "Type",
+              "value": "String",
+              "type": "string"
+            },
+            {
+              "id": "afd3fb06-5de2-41c6-9242-1c7c17d72127",
+              "name": "Value",
+              "value": "={{ $json['Patient Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "bbc1bea2-a24d-4d30-83ef-1cba9cff7080",
+              "name": "Email Address",
+              "value": "={{ $json['Email Address'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a263118c-cfab-49ce-98fa-be8e82f25653",
+              "name": "Doctor",
+              "value": "={{ $json.Doctor }}",
+              "type": "string"
+            },
+            {
+              "id": "c7c8f09c-f715-499a-8a9a-8478b979b694",
+              "name": "Appointment Date",
+              "value": "={{ $json['Appointment Date'] }}",
+              "type": "string"
+            },
+            {
+              "id": "dc8f78dc-9d84-43cc-9d40-166e1f650825",
+              "name": "Appointment Time",
+              "value": "={{ $json['Appointment Time'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -656,
+        -160
+      ],
+      "id": "fd2deb59-d6b6-498c-986b-472b868dde8a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH requested AS (\n    SELECT\n        CAST($1 AS UNSIGNED) AS doctor_id,\n        CAST($2 AS DATE) AS appointment_date,\n        STR_TO_DATE($3, '%h:%i %p') AS appointment_time\n)\nSELECT\n    CASE\n        WHEN EXISTS (\n            SELECT 1\n            FROM requested r\n            JOIN appointment_slots s\n              ON s.doctor_id = r.doctor_id\n             AND s.appointment_date = r.appointment_date\n             AND s.appointment_time = r.appointment_time\n            WHERE s.status = 'BOOKED'\n        )\n        OR EXISTS (\n            SELECT 1\n            FROM requested r\n            JOIN appointment_slots s\n              ON s.doctor_id = r.doctor_id\n             AND s.appointment_date = r.appointment_date\n             AND s.appointment_time = r.appointment_time\n            JOIN appointments a\n              ON a.slot_id = s.slot_id\n            WHERE a.status = 'CONFIRMED'\n        )\n        THEN 1\n        ELSE 0\n    END AS is_booked;",
+        "options": {
+          "queryReplacement": "={{\n[\n  Number(\n    String($('On form submission').first().json['Doctor'])\n      .match(/\\d+/)[0]\n  ),\n  String($('On form submission').first().json['Appointment Date']).slice(0, 10),\n  $('On form submission').first().json['Appointment Time'].trim()\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -512,
+        -160
+      ],
+      "id": "b2df7454-9b3e-4272-b4e5-b60bc4d12a38",
+      "name": "Execute a SQL query",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "27dbd1da-f49b-40eb-9a31-339490c2f76e",
+              "leftValue": "={{ Number($json.is_booked) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -368,
+        -160
+      ],
+      "id": "edab224e-cee0-4763-82c8-f6708cace674",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Appointment Confirmed – SmartClinic",
+        "message": "={{ `<h2>Appointment Confirmed!</h2>  <p>Dear ${$json.full_name},</p>  <p>Your appointment at SmartClinic has been successfully confirmed.</p>  <h3>Appointment Details</h3>  <p><b>Patient:</b> ${$json.full_name}</p> <p><b>Doctor:</b> ${$('On form submission').first().json['Doctor']}</p> <p><b>Date:</b> ${$json.appointment_date}</p> <p><b>Time:</b> ${$json.appointment_time}</p>  <h3>Booking Reference</h3> <p><b>${$json.booking_ref}</b></p>  <p>Please keep this reference for your records.</p>  <p>Thank you for choosing SmartClinic!</p>  <p>Best Regards,<br>SmartClinic Appointment Team</p>` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1088,
+        -240
+      ],
+      "id": "182aa405-4d24-46c4-9804-fdadc2d1e1ca",
+      "name": "Send a message",
+      "webhookId": "a15e365b-2e8e-4d59-ba5d-cdde0233eaeb",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').first().json['Email Address'] }}",
+        "subject": "Appointment Slot Unavailable – SmartClinic",
+        "message": "={{\n`<h2>SmartClinic</h2>\n<p>Dear ${$('On form submission').first().json['Patient Name']},</p>\n<p>Sorry! Your selected appointment slot is unavailable.</p>\n<p><b>Doctor:</b> ${$('On form submission').first().json['Doctor']}</p>\n<p><b>Date:</b> ${$('On form submission').first().json['Appointment Date']}</p>\n<p><b>Time:</b> ${$('On form submission').first().json['Appointment Time']}</p>\n<p>Please select another available appointment time.</p>\n<p>Thank you for choosing SmartClinic.</p>`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        16
+      ],
+      "id": "f4d3677c-496b-4947-92f3-e47d2d1f8070",
+      "name": "Send a message1",
+      "webhookId": "091f23ac-3aed-46a5-915e-7ffc4ab5c689",
+      "credentials": {
+        "gmailOAuth2": {
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO patients\n(full_name, email)\nVALUES ($1, $2);",
+        "options": {
+          "queryReplacement": "={{\n[\n  $('On form submission').first().json['Patient Name'],\n  $('On form submission').first().json['Email Address']\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -176,
+        -336
+      ],
+      "id": "9627c49d-bb76-4867-8bd9-66e8576f9126",
+      "name": "Save Patient",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    a.appointment_id,\n    a.booking_ref,\n    a.patient_id,\n    a.slot_id,\n    a.status,\n    p.full_name,\n    p.email,\n    s.appointment_date,\n    s.appointment_time\nFROM appointments a\nJOIN patients p\n    ON a.patient_id = p.patient_id\nJOIN appointment_slots s\n    ON a.slot_id = s.slot_id\nWHERE p.email = $1\nAND a.slot_id = $2\nORDER BY a.appointment_id DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{\n[\n  $('On form submission').first().json['Email Address'],\n  Number($('Get Slot ID').first().json.slot_id)\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        784,
+        -160
+      ],
+      "id": "7c4543c1-f337-43d0-a7b4-c247a36e9057",
+      "name": "Get Booking",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO appointments\n(booking_ref, patient_id, slot_id, status)\nSELECT\n    CONCAT(\n        'SC-',\n        UPPER(SUBSTRING(REPLACE(UUID(), '-', ''), 1, 24))\n    ),\n    p.patient_id,\n    $1,\n    'CONFIRMED'\nFROM patients p\nWHERE p.email = $2\nORDER BY p.patient_id DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{\n[\n  Number($('Get Slot ID').first().json.slot_id),\n  $('On form submission').first().json['Email Address']\n]\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        608,
+        -336
+      ],
+      "id": "f207a9c6-189a-4a95-9a80-68a0c54182cb",
+      "name": "Create Appointment",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_ADMIN_CHAT_ID",
+        "text": "={{\n`✅ NEW APPOINTMENT BOOKED\n\n🏥 SmartClinic\n\n📋 Booking Reference:\n${$json.booking_ref}\n\n👤 Patient:\n${$json.full_name}\n\n📧 Email:\n${$json.email}\n\n👨‍⚕️ Doctor:\n${$('On form submission').first().json['Doctor']}\n\n📅 Date:\n${$json.appointment_date}\n\n⏰ Time:\n${$json.appointment_time}\n\n📌 Status: CONFIRMED`\n}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        -16
+      ],
+      "id": "a70042b5-e211-427c-b403-85f842b95aca",
+      "name": "Send a text message",
+      "webhookId": "55f3de52-73fb-42c7-9451-3fa259629b9d",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO appointment_slots\n(doctor_id, appointment_date, appointment_time, status)\nSELECT\n    $1,\n    $2,\n    STR_TO_DATE($3, '%h:%i %p'),\n    'AVAILABLE'\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM appointment_slots\n    WHERE doctor_id = $4\n    AND appointment_date = $5\n    AND appointment_time = STR_TO_DATE($6, '%h:%i %p')\n);",
+        "options": {
+          "queryReplacement": "={{ [   Number($('On form submission').first().json['Doctor'].match(/\\d+/)[0]),   $('On form submission').first().json['Appointment Date'],   $('On form submission').first().json['Appointment Time'],   Number($('On form submission').first().json['Doctor'].match(/\\d+/)[0]),   $('On form submission').first().json['Appointment Date'],   $('On form submission').first().json['Appointment Time'] ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        48,
+        -336
+      ],
+      "id": "e8e0c7d1-2040-43af-936e-44cdfdaa6281",
+      "name": "Create Slot If Missing",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    slot_id,\n    doctor_id,\n    appointment_date,\n    appointment_time,\n    status\nFROM appointment_slots\nWHERE doctor_id = $1\nAND appointment_date = $2\nAND appointment_time = STR_TO_DATE($3, '%h:%i %p')\nAND status = 'AVAILABLE'\nORDER BY slot_id DESC\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ [   Number($('On form submission').first().json['Doctor'].match(/\\d+/)[0]),   $('On form submission').first().json['Appointment Date'],   $('On form submission').first().json['Appointment Time'] ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        224,
+        -336
+      ],
+      "id": "4a47a2c8-baab-4646-86c6-5275a728d312",
+      "name": "Get Slot ID",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE appointment_slots\nSET status = 'BOOKED'\nWHERE slot_id = $1\nAND status = 'AVAILABLE';",
+        "options": {
+          "queryReplacement": "={{ [Number($('Get Slot ID').first().json.slot_id)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        400,
+        -160
+      ],
+      "id": "ab5a3620-5dd9-47d4-8a99-b81c24b3f4ba",
+      "name": "Reserve Slot",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Save Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Patient": {
+      "main": [
+        [
+          {
+            "node": "Create Slot If Missing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booking": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Appointment": {
+      "main": [
+        [
+          {
+            "node": "Get Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Slot If Missing": {
+      "main": [
+        [
+          {
+            "node": "Get Slot ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Slot ID": {
+      "main": [
+        [
+          {
+            "node": "Reserve Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reserve Slot": {
+      "main": [
+        [
+          {
+            "node": "Create Appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a2f78b5a-abe7-41cd-9647-9b9292730831",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "g82AXtwuL4avsHh0",
+  "tags": []
+}
