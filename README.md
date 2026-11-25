@@ -6,18 +6,6 @@ A clinic appointment booking workflow built with **n8n, MySQL, Gmail, Telegram, 
 
 ![SmartClinic appointment booking workflow](screenshots/workflow_overview.png)
 
-## Project structure
-
-```text
-SmartClinic/
-├── README.md
-├── workflows/
-│   └── smartclinic_appointment_booking.json
-└── screenshots/
-    └── workflow_overview.png
-```
-
-The workflow expects a compatible MySQL schema. A schema file is not included in this repository.
 
 ## Features
 
@@ -28,7 +16,6 @@ The workflow expects a compatible MySQL schema. A schema file is not included in
 - Can send booking alerts through Telegram after an admin chat ID and Telegram credentials are configured.
 - Uses n8n credentials for service connections; credentials and tokens are not stored in this repository.
 
-The workflow does **not** collect or store phone numbers.
 
 ## How the workflow runs
 
@@ -83,13 +70,6 @@ Create a database and the tables expected by the workflow before importing it. C
 - Restrict access to the n8n form, database, and notification destinations appropriately before using real patient information.
 - The workflow sends patient name and email in its notifications; treat execution data and message history as sensitive.
 
-## Troubleshooting
-
-- **MySQL connection errors:** Confirm both containers are running and that the MySQL host configured in n8n is reachable from the n8n container.
-- **Missing-table or column errors:** Create a schema compatible with the SQL queries in the workflow.
-- **Email failures:** Check the Gmail credential and the n8n execution details.
-- **Telegram failures:** Check the Telegram credential and ensure `YOUR_ADMIN_CHAT_ID` has been replaced with the correct chat ID.
-- **Doctor or slot mismatch:** Confirm the doctor IDs in the form match the IDs used in the appointment-slot records.
 
 ## Project goals
 
